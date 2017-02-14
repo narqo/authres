@@ -11,7 +11,7 @@ func TestParseAuthenticationResults(t *testing.T) {
 			`test.example.org 1; none`,
 			AuthenticationResults{
 				AuthServID: "example.com",
-				Version: "1",
+				Version:    "1",
 			},
 		},
 		{
@@ -22,6 +22,10 @@ func TestParseAuthenticationResults(t *testing.T) {
 		},
 		{
 			`example.com; dkim=pass (good signature) header.d=mail-router.example.net; dkim=fail (bad signature) header.d=newyork.example.com`,
+			AuthenticationResults{},
+		},
+		{
+			`foo.example.net (foobar) 1 (baz); dkim (Because I like it) / 1 (One yay) = (wait for it) fail policy (A dot can go here) . (like that) expired (this surprised me) = (as I wasn't expecting it) 1362471462`,
 			AuthenticationResults{},
 		},
 	}

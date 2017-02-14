@@ -6,9 +6,15 @@ import (
 	"fmt"
 	"strings"
 	"unicode/utf8"
+	"log"
 )
 
 const eof byte = iota
+
+const (
+	TokenNone   = "none"
+	TokenReason = "reason"
+)
 
 type AuthenticationResults struct {
 	AuthServID string
@@ -24,13 +30,23 @@ func (p *authresParser) ParseAuthenticationResults() (*AuthenticationResults, er
 	if err != nil {
 		return nil, errors.New("no authserv-id")
 	}
-	p.skipSpace()
+	p.skipCFWS()
 
 	version := p.parseVersion()
 	if version != "" && version != "1" {
 		return nil, fmt.Errorf("unsupported version: %q", version)
 	}
-	p.skipSpace()
+	p.skipCFWS()
+
+	for {
+		res, err := p.parseReginfo()
+		if err != nil {
+			return nil, err
+		}
+		if res == "" {
+			break
+		}
+	}
 
 	return &AuthenticationResults{
 		AuthServID: authServID,
@@ -47,18 +63,89 @@ func (p *authresParser) parseVersion() (v string) {
 	for ; i < len(p.s) && strings.IndexByte("1234567890", p.s[i]) >= 0; i++ {
 	}
 	v, p.s = p.s[:i], p.s[i+1:]
-	p.skipSpace()
+	p.skipCFWS()
 	return
 }
 
-func (p *authresParser) parseReginfo() string {
-	p.skipSpace()
-	if p.consume() != ';' {
-		return ""
+func (p *authresParser) parseReginfo() (string, error) {
+	p.skipCFWS()
+	if p.consume(';') {
+		return "", nil
 	}
-	p.skipSpace()
+	p.skipCFWS()
 
-	return ""
+	if p.consumeToken(TokenNone) {
+		return TokenNone, nil
+	}
+	method, version, result, err := p.parseMethodSpec()
+	if err != nil {
+		return "", err
+	}
+	p.skipCFWS()
+	reason, err := p.parseReasonSpec()
+	if err != nil {
+		return "", err
+	}
+
+	p.skipCFWS()
+
+	log.Printf("method %q, version %q, result %q, reason %q, ps %q\n", method, version, result, reason, p.s)
+
+	return "", nil
+}
+
+func (p *authresParser) parseMethodSpec() (method, version, result string, err error) {
+	log.Printf("ps %q\n", p.s)
+	p.skipCFWS()
+	method, version, err = p.parseMethod()
+	if err != nil {
+		return
+	}
+	p.skipCFWS()
+	if p.consume('=') {
+		err = errors.New("expected \"=\"")
+		return
+	}
+	p.skipCFWS()
+	result, err = p.consumeAtom(true, false)
+	if err != nil {
+		return
+	}
+	if result == "" {
+		err = errors.New("expected result")
+		return
+	}
+	return
+}
+
+func (p *authresParser) parseMethod() (method, version string, err error) {
+	method, err = p.consumeAtom(true, false)
+	if err != nil {
+		return
+	}
+	if method == "" {
+		return "", "", errors.New("expected method")
+	}
+	p.skipCFWS()
+	if p.consume('/') {
+		return
+	}
+	p.skipCFWS()
+	version = p.parseVersion()
+	return
+}
+
+func (p *authresParser) parseReasonSpec() (reason string, err error) {
+	if p.consumeToken(TokenReason) {
+		p.skipCFWS()
+		if !p.consume('=') {
+			return "", errors.New("expected \"=\"")
+		}
+		p.skipCFWS()
+		// TODO(varankinv): consume rfc2045 value
+		reason, err = p.consumeAtom(true, false)
+	}
+	return
 }
 
 func (p *authresParser) consumeAtom(dot bool, permissive bool) (atom string, err error) {
@@ -99,20 +186,70 @@ Loop:
 	return atom, nil
 }
 
-func (p *authresParser) consume() (c byte) {
-	if p.empty() {
-		return eof
+func (p *authresParser) consumeToken(t string) bool {
+	if len(p.s) >= len(t) && p.s[:len(t)] == t {
+		p.s = p.s[len(t):]
+		return true
 	}
-	c, p.s = p.s[0], p.s[1:]
-	return
+	return false
+}
+
+func (p *authresParser) consume(c byte) bool {
+	if p.empty() || p.peek() != c {
+		return false
+	}
+	p.s = p.s[1:]
+	return true
 }
 
 func (p *authresParser) peek() byte {
 	return p.s[0]
 }
 
+func (p *authresParser) skipCFWS() {
+	p.skipSpace()
+	for p.skipComment() {
+		p.skipSpace()
+	}
+}
+
 func (p *authresParser) skipSpace() {
 	p.s = strings.TrimLeft(p.s, " \t")
+}
+
+func (p *authresParser) skipComment() bool {
+	if p.consume('(') {
+		p.skipSpace()
+		i := 0
+		for ; !p.consume(')'); i++ {
+			p.skipCContent()
+		}
+		if !p.consume(')') {
+			return false
+		}
+		return true
+	}
+	return false
+}
+
+func (p *authresParser) skipCContent() {
+	i := 0
+	for {
+		r, size := utf8.DecodeRuneInString(p.s[i:])
+		if size == 1 || r == utf8.RuneError {
+			return
+		}
+		if size == 0 || !isCchar(r) {
+			break
+		}
+		i += size
+	}
+	if i > 0 {
+		p.s = p.s[i:]
+	}
+	p.skipSpace()
+	p.skipComment()
+	return
 }
 
 func (p *authresParser) empty() bool {
@@ -136,6 +273,14 @@ func isAtext(r rune, dot bool) bool {
 func isQtext(r rune) bool {
 	// Printable US-ASCII, excluding backslash or quote.
 	if r == '\\' || r == '"' {
+		return false
+	}
+	return isVchar(r)
+}
+
+// isCchar reports whether r is a RFC 5322 cchar character.
+func isCchar(r rune) bool {
+	if r == '(' || r == ')' || r == '\\' {
 		return false
 	}
 	return isVchar(r)
