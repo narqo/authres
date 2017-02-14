@@ -32,7 +32,11 @@ func TestParseAuthenticationResults(t *testing.T) {
 
 	for n, tc := range parseTests {
 		p := authresParser{tc.in}
-		res, _ := p.ParseAuthenticationResults()
+		res, err := p.ParseAuthenticationResults()
+		if err != nil {
+			t.Errorf("test %d: error: %v", n, err)
+			continue
+		}
 		t.Logf("test %d: authres: %#v", n, res)
 	}
 }

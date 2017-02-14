@@ -38,12 +38,15 @@ func (p *authresParser) ParseAuthenticationResults() (*AuthenticationResults, er
 	}
 	p.skipCFWS()
 
+	log.Printf("parse %q\n", p.s)
+
 	for {
 		res, err := p.parseReginfo()
 		if err != nil {
 			return nil, err
 		}
-		if res == "" {
+		//log.Printf("for %q %q %v\n", res, p.s, err)
+		if res == "" || res == TokenNone {
 			break
 		}
 	}
@@ -68,8 +71,9 @@ func (p *authresParser) parseVersion() (v string) {
 }
 
 func (p *authresParser) parseReginfo() (string, error) {
+	log.Printf("parseReginfo %q\n", p.s)
 	p.skipCFWS()
-	if p.consume(';') {
+	if !p.consume(';') {
 		return "", nil
 	}
 	p.skipCFWS()
@@ -95,9 +99,9 @@ func (p *authresParser) parseReginfo() (string, error) {
 }
 
 func (p *authresParser) parseMethodSpec() (method, version, result string, err error) {
-	log.Printf("ps %q\n", p.s)
 	p.skipCFWS()
 	method, version, err = p.parseMethod()
+	//log.Printf("parse method %q %q %q %v\n", method, version, p.s, err)
 	if err != nil {
 		return
 	}
@@ -220,8 +224,7 @@ func (p *authresParser) skipSpace() {
 func (p *authresParser) skipComment() bool {
 	if p.consume('(') {
 		p.skipSpace()
-		i := 0
-		for ; !p.consume(')'); i++ {
+		for !p.consume(')') {
 			p.skipCContent()
 		}
 		if !p.consume(')') {
@@ -236,7 +239,8 @@ func (p *authresParser) skipCContent() {
 	i := 0
 	for {
 		r, size := utf8.DecodeRuneInString(p.s[i:])
-		if size == 1 || r == utf8.RuneError {
+		//log.Printf("skip %q %d %q\n", r, size, p.s)
+		if size == 1 && r == utf8.RuneError {
 			return
 		}
 		if size == 0 || !isCchar(r) {
