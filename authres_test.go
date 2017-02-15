@@ -37,6 +37,6 @@ func TestParseAuthenticationResults(t *testing.T) {
 			t.Errorf("test %d: error: %v", n, err)
 			continue
 		}
-		t.Logf("test %d: authres: %#v", n, res)
+		t.Logf("test %d: authres: %+v", n, res)
 	}
 }
