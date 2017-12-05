@@ -244,31 +244,51 @@ func (p *authresParser) parsePropSpec() (ptype, prop, val string, err error) {
 
 func (p *authresParser) parsePValue() (string, error) {
 	p.skipCFWS()
-	// TODO(varankinv): quoted string
-	if p.consume('@') {
-		// parse "@" domain-name
-		domain, err := p.consumeAtom(true, false)
-		if err != nil {
-			return "", err
-		}
-		p.skipCFWS()
-		if domain != "" {
-			return "@" + domain, nil
+	quoted, err := p.consumeQuotedString()
+	if err != nil {
+		return "", err
+	}
+	if len(quoted) > 0 {
+		if p.consume('@') {
+			// parse quoted-string "@" domain-name
+			domain, err := p.consumeAtom(true, false)
+			if err != nil {
+				return "", err
+			}
+			p.skipCFWS()
+			if domain != "" {
+				return quoted + "@" + domain, nil
+			}
+		} else {
+			p.skipCFWS()
+			return quoted, nil
 		}
 	} else {
-		// parse *ptext
-		pvalue, err := p.consumeAnyText(func(r rune) bool {
-			if r == '=' {
-				return false
+		if p.consume('@') {
+			// parse "@" domain-name
+			domain, err := p.consumeAtom(true, false)
+			if err != nil {
+				return "", err
 			}
-			return isAtext(r, true)
-		})
-		if err != nil {
-			return "", err
-		}
-		p.skipCFWS()
-		if pvalue != "" {
-			return pvalue, nil
+			p.skipCFWS()
+			if domain != "" {
+				return "@" + domain, nil
+			}
+		} else {
+			// parse *ptext
+			pvalue, err := p.consumeAnyText(func(r rune) bool {
+				if r == '=' {
+					return false
+				}
+				return isAtext(r, true)
+			})
+			if err != nil {
+				return "", err
+			}
+			p.skipCFWS()
+			if pvalue != "" {
+				return pvalue, nil
+			}
 		}
 	}
 	return "", nil
@@ -279,6 +299,19 @@ func (p *authresParser) parseEnd() error {
 		return fmt.Errorf("expected end of test: %q", p.s)
 	}
 	return nil
+}
+
+func (p *authresParser) consumeQuotedString() (string, error) {
+	if p.consume('"') {
+		result, err := p.consumeAtom(true, false)
+		if p.consume('"') {
+			return result, nil
+		}
+		if err != nil {
+			return "", err
+		}
+	}
+	return "", nil
 }
 
 func (p *authresParser) consumeAtom(dot bool, permissive bool) (atom string, err error) {
