@@ -208,7 +208,7 @@ func (p *authresParser) parsePropSpec() (ptype, prop, val string, err error) {
 	switch strings.ToLower(ptype) {
 	case "":
 		return
-	case "smtp", "header", "body", "policy":
+	case "smtp", "header", "body", "policy", "mailfrom":
 	default:
 		return "", "", "", fmt.Errorf("prop-spec: invalid ptype: %q", ptype)
 	}
