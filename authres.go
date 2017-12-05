@@ -33,11 +33,11 @@ type AuthenticationResults struct {
 	Results    []AuthenticationResult
 }
 
-type authresParser struct {
+type AuthresParser struct {
 	s string
 }
 
-func (p *authresParser) ParseAuthenticationResults() (*AuthenticationResults, error) {
+func (p *AuthresParser) ParseAuthenticationResults() (*AuthenticationResults, error) {
 	authServID, err := p.parseAuthServID()
 	if err != nil {
 		return nil, errors.New("no authserv-id")
@@ -73,11 +73,11 @@ func (p *authresParser) ParseAuthenticationResults() (*AuthenticationResults, er
 	return authres, err
 }
 
-func (p *authresParser) parseAuthServID() (string, error) {
+func (p *AuthresParser) parseAuthServID() (string, error) {
 	return p.consumeAtom(true, false)
 }
 
-func (p *authresParser) parseVersion() (v string) {
+func (p *AuthresParser) parseVersion() (v string) {
 	//log.Printf("parseVersion: %q\n", p.s)
 	i := 0
 	for i <= len(p.s) && isDigit(p.s[i]) {
@@ -88,7 +88,7 @@ func (p *authresParser) parseVersion() (v string) {
 	return
 }
 
-func (p *authresParser) parseResinfo() (res AuthenticationResult, err error) {
+func (p *AuthresParser) parseResinfo() (res AuthenticationResult, err error) {
 	//log.Printf("parseResinfo %q\n", p.s)
 	p.skipCFWS()
 	if !p.consume(';') {
@@ -132,7 +132,7 @@ func (p *authresParser) parseResinfo() (res AuthenticationResult, err error) {
 	return
 }
 
-func (p *authresParser) parseMethodSpec() (method, version, result string, err error) {
+func (p *AuthresParser) parseMethodSpec() (method, version, result string, err error) {
 	p.skipCFWS()
 	method, version, err = p.parseMethod()
 	//log.Printf("parse method %q %q %q %v\n", method, version, p.s, err)
@@ -156,7 +156,7 @@ func (p *authresParser) parseMethodSpec() (method, version, result string, err e
 	return
 }
 
-func (p *authresParser) parseMethod() (method, version string, err error) {
+func (p *AuthresParser) parseMethod() (method, version string, err error) {
 	//method, err = p.consumeAtom(true, false)
 	method, err = p.consumeAnyText(func(r rune) bool {
 		if r == '=' {
@@ -179,7 +179,7 @@ func (p *authresParser) parseMethod() (method, version string, err error) {
 	return
 }
 
-func (p *authresParser) parseReasonSpec() (reason string, err error) {
+func (p *AuthresParser) parseReasonSpec() (reason string, err error) {
 	//log.Printf("parse reason spec %q %v\n", p.s, err)
 	if p.consumeToken(tokenReason) {
 		p.skipCFWS()
@@ -193,7 +193,7 @@ func (p *authresParser) parseReasonSpec() (reason string, err error) {
 	return
 }
 
-func (p *authresParser) parsePropSpec() (ptype, prop, val string, err error) {
+func (p *AuthresParser) parsePropSpec() (ptype, prop, val string, err error) {
 	ptype, err = p.consumeAtom(false, false)
 	//log.Printf("parse prop spec %q %q %v\n", ptype, p.s, err)
 	if err != nil {
@@ -237,7 +237,7 @@ func (p *authresParser) parsePropSpec() (ptype, prop, val string, err error) {
 	return
 }
 
-func (p *authresParser) parsePValue() (string, error) {
+func (p *AuthresParser) parsePValue() (string, error) {
 	p.skipCFWS()
 	// TODO(varankinv): quoted string
 	if p.consume('@') {
@@ -269,14 +269,14 @@ func (p *authresParser) parsePValue() (string, error) {
 	return "", nil
 }
 
-func (p *authresParser) parseEnd() error {
+func (p *AuthresParser) parseEnd() error {
 	if !p.empty() {
 		return fmt.Errorf("expected end of test: %q", p.s)
 	}
 	return nil
 }
 
-func (p *authresParser) consumeAtom(dot bool, permissive bool) (atom string, err error) {
+func (p *AuthresParser) consumeAtom(dot bool, permissive bool) (atom string, err error) {
 	i := 0
 
 Loop:
@@ -314,7 +314,7 @@ Loop:
 	return atom, nil
 }
 
-func (p *authresParser) consumeAnyText(checkFn func(c rune) bool) (anytext string, err error) {
+func (p *AuthresParser) consumeAnyText(checkFn func(c rune) bool) (anytext string, err error) {
 	if p.empty() {
 		return
 	}
@@ -329,7 +329,7 @@ func (p *authresParser) consumeAnyText(checkFn func(c rune) bool) (anytext strin
 	return anytext, nil
 }
 
-func (p *authresParser) consumeToken(t string) bool {
+func (p *AuthresParser) consumeToken(t string) bool {
 	if len(p.s) >= len(t) && p.s[:len(t)] == t {
 		p.s = p.s[len(t):]
 		return true
@@ -337,7 +337,7 @@ func (p *authresParser) consumeToken(t string) bool {
 	return false
 }
 
-func (p *authresParser) consume(c byte) bool {
+func (p *AuthresParser) consume(c byte) bool {
 	if p.empty() || p.peek() != c {
 		return false
 	}
@@ -345,11 +345,11 @@ func (p *authresParser) consume(c byte) bool {
 	return true
 }
 
-func (p *authresParser) peek() byte {
+func (p *AuthresParser) peek() byte {
 	return p.s[0]
 }
 
-func (p *authresParser) skipCFWS() {
+func (p *AuthresParser) skipCFWS() {
 	p.skipSpace()
 	//log.Printf("skipCFWS: %q\n", p.s)
 	for p.skipComment() {
@@ -358,11 +358,11 @@ func (p *authresParser) skipCFWS() {
 	p.skipSpace()
 }
 
-func (p *authresParser) skipSpace() {
+func (p *AuthresParser) skipSpace() {
 	p.s = strings.TrimLeft(p.s, " \t")
 }
 
-func (p *authresParser) skipComment() bool {
+func (p *AuthresParser) skipComment() bool {
 	if p.consume('(') {
 		p.skipSpace()
 		for !p.consume(')') {
@@ -376,7 +376,7 @@ func (p *authresParser) skipComment() bool {
 	return false
 }
 
-func (p *authresParser) skipCContent() {
+func (p *AuthresParser) skipCContent() {
 	i := 0
 	for {
 		r, size := utf8.DecodeRuneInString(p.s[i:])
@@ -397,7 +397,7 @@ func (p *authresParser) skipCContent() {
 	return
 }
 
-func (p *authresParser) empty() bool {
+func (p *AuthresParser) empty() bool {
 	return len(p.s) == 0
 }
 
