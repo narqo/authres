@@ -68,8 +68,7 @@ func TestParseAuthenticationResults(t *testing.T) {
 
 	for n, tc := range parseTests {
 		t.Run(fmt.Sprint(n), func(t *testing.T) {
-			p := authresParser{tc.in}
-			res, err := p.ParseAuthenticationResults()
+			res, err := ParseAuthenticationResults(tc.in)
 			if err != nil {
 				t.Errorf("test %d: error: %v", n, err)
 			}
