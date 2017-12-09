@@ -37,6 +37,11 @@ type authresParser struct {
 	s string
 }
 
+func ParseAuthenticationResults(s string) (*AuthenticationResults, error) {
+	a := authresParser{s}
+	return a.ParseAuthenticationResults()
+}
+
 func (p *authresParser) ParseAuthenticationResults() (*AuthenticationResults, error) {
 	authServID, err := p.parseAuthServID()
 	if err != nil {
