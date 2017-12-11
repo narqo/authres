@@ -192,8 +192,17 @@ func (p *authresParser) parseReasonSpec() (reason string, err error) {
 			return "", errors.New("reason-spec: expected \"=\"")
 		}
 		p.skipCFWS()
-		// TODO(varankinv): consume rfc2045 value
-		reason, err = p.consumeAtom(true, false)
+
+		quoted, err := p.consumeQuotedString()
+		if err != nil {
+			return "", err
+		}
+		if len(quoted) > 0 {
+			reason = quoted
+		} else {
+			reason, err = p.consumeAtom(true, false)
+		}
+
 	}
 	return
 }
@@ -303,13 +312,18 @@ func (p *authresParser) parseEnd() error {
 
 func (p *authresParser) consumeQuotedString() (string, error) {
 	if p.consume('"') {
-		result, err := p.consumeAtom(true, false)
-		if p.consume('"') {
-			return result, nil
+		var result []string
+		for !p.consume('"') {
+			t, err := p.consumeAtom(true, false)
+			if len(t) > 0 {
+				result = append(result, t)
+			}
+			if err != nil {
+				return "", err
+			}
+			p.skipCFWS()
 		}
-		if err != nil {
-			return "", err
-		}
+		return strings.Join(result, " "), nil
 	}
 	return "", nil
 }

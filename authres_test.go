@@ -63,6 +63,20 @@ func TestParseAuthenticationResults(t *testing.T) {
 			},
 		},
 		{
+			`example.com; dkim=fail reason="signature verification failed" (2048-bit key; insecure) header.d=mail-router.example.net`,
+			AuthenticationResults{
+				AuthServID: "example.com",
+				Results: []AuthenticationResult{
+					{
+						Method:     "dkim",
+						Result:     "fail",
+						Reason:     "signature verification failed",
+						Properties: []string{"header+++d+++mail-router.example.net"},
+					},
+				},
+			},
+		},
+		{
 			`foo.example.net (foobar) 1 (baz); dkim (Because I like it) /1 (One yay) = (wait for it) fail policy (A dot can go here) . (like that) expired (this surprised me) = (as I wasn't expecting it) 1362471462`,
 			AuthenticationResults{
 				AuthServID: "foo.example.net",
