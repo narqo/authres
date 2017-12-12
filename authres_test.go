@@ -32,6 +32,19 @@ func TestParseAuthenticationResults(t *testing.T) {
 			},
 		},
 		{
+			`example.com; iprev=pass policy.iprev="127.0.0.1"`,
+			AuthenticationResults{
+				AuthServID: "example.com",
+				Results: []AuthenticationResult{
+					{
+						Method:     "iprev",
+						Result:     "pass",
+						Properties: []string{"policy+++iprev+++127.0.0.1"},
+					},
+				},
+			},
+		},
+		{
 			`example.com; dkim=pass (good signature) header.d=mail-router.example.net; dkim=fail (bad signature) header.d=newyork.example.com`,
 			AuthenticationResults{
 				AuthServID: "example.com",
@@ -45,6 +58,20 @@ func TestParseAuthenticationResults(t *testing.T) {
 						Method:     "dkim",
 						Result:     "fail",
 						Properties: []string{"header+++d+++newyork.example.com"},
+					},
+				},
+			},
+		},
+		{
+			`example.com; dkim=fail reason="signature verification failed" (2048-bit key; insecure) header.d=mail-router.example.net`,
+			AuthenticationResults{
+				AuthServID: "example.com",
+				Results: []AuthenticationResult{
+					{
+						Method:     "dkim",
+						Result:     "fail",
+						Reason:     "signature verification failed",
+						Properties: []string{"header+++d+++mail-router.example.net"},
 					},
 				},
 			},
@@ -72,7 +99,7 @@ func TestParseAuthenticationResults(t *testing.T) {
 			if err != nil {
 				t.Errorf("test %d: error: %v", n, err)
 			}
-			if !reflect.DeepEqual(*res, tc.authres) {
+			if res != nil && !reflect.DeepEqual(*res, tc.authres) {
 				t.Errorf("want: %+v, got: %+v", tc.authres, *res)
 			}
 		})
