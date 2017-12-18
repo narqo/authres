@@ -31,6 +31,7 @@ type AuthenticationResults struct {
 	AuthServID string
 	Version    string
 	Results    []AuthenticationResult
+	Errors     []error
 }
 
 type authresParser struct {
@@ -63,7 +64,7 @@ func (p *authresParser) ParseAuthenticationResults() (*AuthenticationResults, er
 	for {
 		res, err := p.parseResinfo()
 		if err != nil {
-			return nil, err
+			authres.Errors = append(authres.Errors, fmt.Errorf("%s ==> %s", err, p.s))
 		}
 		//log.Printf("for %q %q %v\n", res, p.s, err)
 		if res.Method == "" { // TODO(varankinv): check NonAuthenticationResult
@@ -74,8 +75,11 @@ func (p *authresParser) ParseAuthenticationResults() (*AuthenticationResults, er
 
 	p.skipCFWS()
 	err = p.parseEnd()
+	if err != nil {
+		authres.Errors = append(authres.Errors, fmt.Errorf("%s ==> %s", err, p.s))
+	}
 
-	return authres, err
+	return authres, nil
 }
 
 func (p *authresParser) parseAuthServID() (string, error) {
