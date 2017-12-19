@@ -22,7 +22,17 @@ type AuthenticationResult struct {
 	ResultComment string
 	Reason        string
 	ReasonComment string
-	Properties    []string
+	Properties    []Property
+}
+
+type Property struct {
+	Type  string
+	Name  string
+	Value string
+}
+
+func (p Property) String() string {
+	return p.Type + "." + p.Name + "=" + p.Value
 }
 
 var NonAuthenticationResult AuthenticationResult
@@ -128,8 +138,8 @@ func (p *authresParser) parseResinfo() (res AuthenticationResult, err error) {
 		if ptype == "" {
 			break
 		}
-		// TODO(varankinv): result properties
-		res.Properties = append(res.Properties, strings.Join([]string{ptype, prop, val}, "+++"))
+
+		res.Properties = append(res.Properties, Property{ptype, prop, val})
 	}
 
 	//log.Printf("method %q, version %q, result %q, reason %q, ps %q\n", method, version, result, reason, p.s)

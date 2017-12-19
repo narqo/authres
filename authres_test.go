@@ -26,7 +26,7 @@ func TestParseAuthenticationResults(t *testing.T) {
 					{
 						Method:     "spf",
 						Result:     "pass",
-						Properties: []string{"smtp+++mailfrom+++example.net"},
+						Properties: []Property{{"smtp", "mailfrom", "example.net"}},
 					},
 				},
 			},
@@ -39,7 +39,7 @@ func TestParseAuthenticationResults(t *testing.T) {
 					{
 						Method:     "iprev",
 						Result:     "pass",
-						Properties: []string{"policy+++iprev+++127.0.0.1"},
+						Properties: []Property{{"policy", "iprev", "127.0.0.1"}},
 					},
 				},
 			},
@@ -52,12 +52,12 @@ func TestParseAuthenticationResults(t *testing.T) {
 					{
 						Method:     "dkim",
 						Result:     "pass",
-						Properties: []string{"header+++d+++mail-router.example.net"},
+						Properties: []Property{{"header", "d", "mail-router.example.net"}},
 					},
 					{
 						Method:     "dkim",
 						Result:     "fail",
-						Properties: []string{"header+++d+++newyork.example.com"},
+						Properties: []Property{{"header", "d", "newyork.example.com"}},
 					},
 				},
 			},
@@ -71,7 +71,7 @@ func TestParseAuthenticationResults(t *testing.T) {
 						Method:     "dkim",
 						Result:     "fail",
 						Reason:     "signature verification failed",
-						Properties: []string{"header+++d+++mail-router.example.net"},
+						Properties: []Property{{"header", "d", "mail-router.example.net"}},
 					},
 				},
 			},
@@ -86,7 +86,7 @@ func TestParseAuthenticationResults(t *testing.T) {
 						Method:     "dkim",
 						Version:    "1",
 						Result:     "fail",
-						Properties: []string{"policy+++expired+++1362471462"},
+						Properties: []Property{{"policy", "expired", "1362471462"}},
 					},
 				},
 			},
@@ -100,7 +100,7 @@ func TestParseAuthenticationResults(t *testing.T) {
 				t.Errorf("test %d: error: %v", n, err)
 			}
 			if res != nil && !reflect.DeepEqual(*res, tc.authres) {
-				t.Errorf("want: %+v, got: %+v", tc.authres, *res)
+				t.Errorf("want: %+v\ngot: %+v", tc.authres, *res)
 			}
 		})
 	}
