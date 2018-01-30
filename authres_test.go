@@ -45,6 +45,19 @@ func TestParseAuthenticationResults(t *testing.T) {
 			},
 		},
 		{
+			`example.com; spf=neutral smtp.mailfrom=""`,
+			AuthenticationResults{
+				AuthServID: "example.com",
+				Results: []AuthenticationResult{
+					{
+						Method:     "spf",
+						Result:     "neutral",
+						Properties: []string{"smtp+++mailfrom+++"},
+					},
+				},
+			},
+		},
+		{
 			`example.com; dkim=pass (good signature) header.d=mail-router.example.net; dkim=fail (bad signature) header.d=newyork.example.com`,
 			AuthenticationResults{
 				AuthServID: "example.com",

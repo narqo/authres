@@ -255,9 +255,7 @@ func (p *authresParser) parsePropSpec() (ptype, prop, val string, err error) {
 	if err != nil {
 		return
 	}
-	if val == "" {
-		return "", "", "", errors.New("prop-spec: expected pvalue")
-	}
+
 	return
 }
 
